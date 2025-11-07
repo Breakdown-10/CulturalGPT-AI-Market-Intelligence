@@ -1,0 +1,153 @@
+
+import React, { useState, useContext, useEffect } from 'react';
+import { AppContext } from '../contexts/AppContext';
+import { generateFullAnalysis } from '../services/geminiService';
+import type { AnalysisResult } from '../types';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Select from '../components/ui/Select';
+import Progress from '../components/ui/Progress';
+import Loader from '../components/Loader';
+import { TARGET_MARKETS, Logo } from '../constants';
+
+const AnalyzePage: React.FC = () => {
+  const { navigate } = useContext(AppContext);
+  const [step, setStep] = useState(1);
+  const [companyName, setCompanyName] = useState('');
+  const [description, setDescription] = useState('');
+  const [marketGoals, setMarketGoals] = useState('');
+  const [assets, setAssets] = useState<File[]>([]);
+  const [targetMarket, setTargetMarket] = useState(TARGET_MARKETS[0]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+
+  const totalSteps = 3;
+  const progress = (step / totalSteps) * 100;
+
+  useEffect(() => {
+    if (analysisResult) {
+      navigate('results', analysisResult.id);
+    }
+  }, [analysisResult, navigate]);
+
+  const handleNext = () => {
+    if (step < totalSteps) {
+      setStep(step + 1);
+    }
+  };
+
+  const handleBack = () => {
+    if (step > 1) {
+      setStep(step - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsLoading(true);
+    const result = await generateFullAnalysis(companyName, targetMarket);
+    setAnalysisResult(result);
+  };
+  
+  if (isLoading) {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-background p-4">
+             <div className="flex items-center space-x-2 mb-8">
+                <Logo className="h-10 w-10 text-foreground" />
+                <span className="font-bold text-2xl">CulturalGPT</span>
+            </div>
+            <Loader message="Analyzing cultural resonance... this may take a moment." />
+        </div>
+    );
+  }
+
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-1">Brand Identity</h2>
+            <p className="text-muted-foreground mb-6">Tell us about your company.</p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Company Name</label>
+                <Input value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="e.g., InnovateX" />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Brand Description</label>
+                <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4} className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm" placeholder="Describe your brand's mission, values, and tone."></textarea>
+              </div>
+               <div>
+                <label className="text-sm font-medium">Market Goals</label>
+                <Input value={marketGoals} onChange={e => setMarketGoals(e.target.value)} placeholder="e.g., Become a top 3 choice for millennials" />
+              </div>
+            </div>
+          </div>
+        );
+      case 2:
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-1">Brand Assets</h2>
+            <p className="text-muted-foreground mb-6">Upload files that represent your brand.</p>
+            <div className="space-y-4">
+               <div className="relative border-2 border-dashed border-border rounded-lg p-12 text-center">
+                    <p className="text-muted-foreground">Drag & drop files or click to upload</p>
+                    <Input type="file" multiple onChange={(e) => setAssets(Array.from(e.target.files || []))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"/>
+                </div>
+                {assets.length > 0 && (
+                    <ul className="space-y-2">
+                        {assets.map((file, i) => <li key={i} className="text-sm text-muted-foreground">{file.name}</li>)}
+                    </ul>
+                )}
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div>
+            <h2 className="text-2xl font-bold mb-1">Target Market</h2>
+            <p className="text-muted-foreground mb-6">Which region are you expanding into?</p>
+             <div>
+                <label className="text-sm font-medium">Select Market</label>
+                <Select value={targetMarket} onChange={e => setTargetMarket(e.target.value)}>
+                    {TARGET_MARKETS.map(market => <option key={market} value={market}>{market}</option>)}
+                </Select>
+            </div>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-muted/40 flex items-center justify-center p-4">
+      <div className="w-full max-w-2xl">
+        <div className="text-center mb-8">
+           <button onClick={() => navigate('landing')} className="inline-flex items-center space-x-2">
+            <Logo className="h-8 w-8 text-foreground" />
+            <span className="font-bold text-lg">CulturalGPT</span>
+          </button>
+        </div>
+        <div className="bg-card p-8 rounded-2xl shadow-lg border">
+          <Progress value={progress} className="mb-8" />
+          {renderStep()}
+          <div className="mt-8 flex justify-between">
+            <Button variant="outline" onClick={handleBack} disabled={step === 1}>Back</Button>
+            {step === 2 ? (
+                <div className="flex items-center space-x-2">
+                    <Button variant="ghost" onClick={handleNext}>Skip</Button>
+                    <Button onClick={handleNext}>Next</Button>
+                </div>
+            ) : step < totalSteps ? (
+              <Button onClick={handleNext}>Next</Button>
+            ) : (
+              <Button onClick={handleSubmit}>Generate Analysis</Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AnalyzePage;
