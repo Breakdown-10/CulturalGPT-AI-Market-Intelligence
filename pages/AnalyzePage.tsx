@@ -1,8 +1,7 @@
-
-import React, { useState, useContext, useEffect } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { generateFullAnalysis } from '../services/geminiService';
-import type { AnalysisResult } from '../types';
+import type { AnalysisResult, BrandAnalysis } from '../types';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -20,6 +19,7 @@ const AnalyzePage: React.FC = () => {
   const [targetMarket, setTargetMarket] = useState(TARGET_MARKETS[0]);
   const [isLoading, setIsLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -41,11 +41,63 @@ const AnalyzePage: React.FC = () => {
       setStep(step - 1);
     }
   };
+  
+  const fileToPart = async (file: File) => {
+    const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve((reader.result as string).split(',')[1]);
+        reader.onerror = error => reject(error);
+    });
+    return {
+        inlineData: {
+            data: base64,
+            mimeType: file.type,
+        },
+    };
+  };
 
   const handleSubmit = async () => {
     setIsLoading(true);
-    const result = await generateFullAnalysis(companyName, targetMarket);
-    setAnalysisResult(result);
+    try {
+      const assetParts = await Promise.all(
+          assets
+              .filter(file => file.type.startsWith('image/'))
+              .map(fileToPart)
+      );
+
+      const result = await generateFullAnalysis({
+        brandName: companyName,
+        description,
+        marketGoals,
+        targetMarket,
+        assets: assetParts,
+      });
+      
+      // Store full result for the results page
+      localStorage.setItem(result.id, JSON.stringify(result));
+      
+      // Store summary for the dashboard
+      const analyses: BrandAnalysis[] = JSON.parse(localStorage.getItem('analyses') || '[]');
+      const newAnalysis: BrandAnalysis = {
+          id: result.id,
+          brandName: result.brandName,
+          targetMarket: result.targetMarket,
+          status: 'Completed',
+          createdAt: new Date().toISOString().split('T')[0],
+      };
+      analyses.unshift(newAnalysis); // Add to the top of the list
+      localStorage.setItem('analyses', JSON.stringify(analyses));
+
+      setAnalysisResult(result);
+    } catch (error) {
+        console.error("Analysis failed:", error);
+        const errorMessage = error instanceof Error && (error.message.includes('overloaded') || error.message.includes('503'))
+            ? "The model is currently overloaded. We tried a few times but were unsuccessful. Please try again later."
+            : "An unexpected error occurred during the analysis. Please check the console for details and try again.";
+        alert(errorMessage);
+        setIsLoading(false);
+    }
   };
   
   if (isLoading) {
@@ -87,16 +139,29 @@ const AnalyzePage: React.FC = () => {
         return (
           <div>
             <h2 className="text-2xl font-bold mb-1">Brand Assets</h2>
-            <p className="text-muted-foreground mb-6">Upload files that represent your brand.</p>
+            <p className="text-muted-foreground mb-6">Upload logos, product images, or marketing materials (JPG, PNG supported).</p>
             <div className="space-y-4">
-               <div className="relative border-2 border-dashed border-border rounded-lg p-12 text-center">
+               <div 
+                className="relative border-2 border-dashed border-border rounded-lg p-12 text-center hover:border-primary transition-colors cursor-pointer"
+                onClick={() => fileInputRef.current?.click()}
+               >
                     <p className="text-muted-foreground">Drag & drop files or click to upload</p>
-                    <Input type="file" multiple onChange={(e) => setAssets(Array.from(e.target.files || []))} className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"/>
+                    <Input 
+                        ref={fileInputRef}
+                        type="file"
+                        multiple
+                        accept="image/png, image/jpeg"
+                        onChange={(e) => setAssets(Array.from(e.target.files || []))}
+                        className="hidden"
+                    />
                 </div>
                 {assets.length > 0 && (
-                    <ul className="space-y-2">
-                        {assets.map((file, i) => <li key={i} className="text-sm text-muted-foreground">{file.name}</li>)}
-                    </ul>
+                    <div>
+                        <p className="font-medium text-sm mt-4">Selected files:</p>
+                        <ul className="space-y-2 mt-2">
+                            {assets.map((file, i) => <li key={i} className="text-sm text-muted-foreground">{file.name} ({Math.round(file.size / 1024)} KB)</li>)}
+                        </ul>
+                    </div>
                 )}
             </div>
           </div>
@@ -139,7 +204,7 @@ const AnalyzePage: React.FC = () => {
                     <Button onClick={handleNext}>Next</Button>
                 </div>
             ) : step < totalSteps ? (
-              <Button onClick={handleNext}>Next</Button>
+              <Button onClick={handleNext} disabled={(step === 1 && (!companyName || !description || !marketGoals))}>Next</Button>
             ) : (
               <Button onClick={handleSubmit}>Generate Analysis</Button>
             )}

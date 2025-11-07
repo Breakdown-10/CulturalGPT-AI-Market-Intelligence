@@ -1,16 +1,9 @@
-
-import React, { useContext } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import type { BrandAnalysis } from '../types';
 import { AppContext } from '../contexts/AppContext';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
-
-const mockAnalyses: BrandAnalysis[] = [
-  { id: '1', brandName: 'InnovateX', targetMarket: 'Japan', status: 'Completed', createdAt: '2023-10-26' },
-  { id: '2', brandName: 'EcoPure', targetMarket: 'Germany', status: 'Completed', createdAt: '2023-10-24' },
-  { id: '3', brandName: 'QuantumLeap', targetMarket: 'Brazil', status: 'In Progress', createdAt: '2023-10-27' },
-];
 
 const StatusBadge: React.FC<{ status: BrandAnalysis['status'] }> = ({ status }) => {
     const statusClasses = {
@@ -27,15 +20,23 @@ const StatusBadge: React.FC<{ status: BrandAnalysis['status'] }> = ({ status }) 
 
 const DashboardPage: React.FC = () => {
     const { navigate } = useContext(AppContext);
+    const [analyses, setAnalyses] = useState<BrandAnalysis[]>([]);
+
+    useEffect(() => {
+        const storedAnalyses = localStorage.getItem('analyses');
+        if (storedAnalyses) {
+            setAnalyses(JSON.parse(storedAnalyses));
+        }
+    }, []);
 
     return (
         <DashboardLayout>
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Projects</h1>
             </div>
-            {mockAnalyses.length > 0 ? (
+            {analyses.length > 0 ? (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {mockAnalyses.map((analysis) => (
+                    {analyses.map((analysis) => (
                         <Card key={analysis.id}>
                             <CardHeader>
                                 <div className="flex justify-between items-start">

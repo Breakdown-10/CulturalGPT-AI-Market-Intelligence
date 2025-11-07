@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { generateFullAnalysis } from '../services/geminiService';
 import type { AnalysisResult } from '../types';
 import DashboardLayout from '../components/layout/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/Card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Loader from '../components/Loader';
 
@@ -13,17 +11,31 @@ type Tab = 'Brand DNA' | 'Cultural Insights' | 'Strategy' | 'Risk Assessment';
 const ResultsPage: React.FC<{ analysisId: string }> = ({ analysisId }) => {
   const [activeTab, setActiveTab] = useState<Tab>('Brand DNA');
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      // In a real app, you'd fetch by analysisId. Here we just generate mock data.
-      const data = await generateFullAnalysis('InnovateX', 'Japan');
-      setResult(data);
+    const fetchData = () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const storedData = localStorage.getItem(analysisId);
+        if (storedData) {
+          setResult(JSON.parse(storedData));
+        } else {
+          setError(`Analysis report with ID "${analysisId}" not found. It might have been cleared from your browser's storage. Please start a new analysis.`);
+        }
+      } catch (e) {
+        console.error("Failed to load analysis report:", e);
+        setError("An error occurred while loading the analysis report. The data might be corrupted.");
+      } finally {
+        setIsLoading(false);
+      }
     };
     fetchData();
   }, [analysisId]);
 
-  if (!result) {
+  if (isLoading) {
     return (
       <DashboardLayout>
         <div className="flex items-center justify-center h-full">
@@ -32,6 +44,38 @@ const ResultsPage: React.FC<{ analysisId: string }> = ({ analysisId }) => {
       </DashboardLayout>
     );
   }
+
+  if (error) {
+    return (
+        <DashboardLayout>
+            <div className="flex flex-col items-center justify-center h-full text-center p-4">
+                <Card className="max-w-md w-full">
+                    <CardHeader>
+                        <CardTitle className="text-destructive">Analysis Failed</CardTitle>
+                        <CardDescription>An error occurred while fetching your report.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-muted-foreground">{error}</p>
+                    </CardContent>
+                    <CardFooter>
+                        <Button className="w-full" onClick={() => window.location.reload()}>Try Again</Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        </DashboardLayout>
+    );
+  }
+
+  if (!result) {
+    return (
+        <DashboardLayout>
+            <div className="flex items-center justify-center h-full">
+                <p>Could not find the analysis report.</p>
+            </div>
+        </DashboardLayout>
+    );
+  }
+
 
   const renderContent = () => {
     switch (activeTab) {

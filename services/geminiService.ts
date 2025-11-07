@@ -1,73 +1,185 @@
-
+import { GoogleGenAI, Type, GenerateContentResponse } from "@google/genai";
 import type { AnalysisResult } from '../types';
 
-const mockAnalysisResult: AnalysisResult = {
-  id: 'mock-id-12345',
-  brandName: 'InnovateX',
-  targetMarket: 'Japan',
-  brandDNA: {
-    archetype: 'The Creator',
-    tone: ['Innovative', 'Bold', 'Minimalist'],
-    audienceTraits: ['Tech-savvy', 'Early Adopters', 'Design-conscious'],
-    summary: 'InnovateX positions itself as a forward-thinking technology brand that values design and cutting-edge solutions. Its core message revolves around empowering users to create and innovate.',
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+interface BrandData {
+  brandName: string;
+  description: string;
+  marketGoals: string;
+  targetMarket: string;
+  assets: { inlineData: { data: string; mimeType: string; } }[];
+}
+
+const analysisResultSchema = {
+  type: Type.OBJECT,
+  properties: {
+    brandDNA: {
+      type: Type.OBJECT,
+      properties: {
+        archetype: { type: Type.STRING },
+        tone: { type: Type.ARRAY, items: { type: Type.STRING } },
+        audienceTraits: { type: Type.ARRAY, items: { type: Type.STRING } },
+        summary: { type: Type.STRING },
+      },
+      required: ['archetype', 'tone', 'audienceTraits', 'summary']
+    },
+    culturalInsights: {
+      type: Type.OBJECT,
+      properties: {
+        alignmentScore: { type: Type.NUMBER },
+        opportunities: { type: Type.ARRAY, items: { type: Type.STRING } },
+        risks: { type: Type.ARRAY, items: { type: Type.STRING } },
+        localizationAdvice: { type: Type.STRING },
+        chartData: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              value: { type: Type.NUMBER },
+            },
+            required: ['name', 'value']
+          }
+        },
+      },
+       required: ['alignmentScore', 'opportunities', 'risks', 'localizationAdvice', 'chartData']
+    },
+    strategy: {
+      type: Type.OBJECT,
+      properties: {
+        executiveSummary: { type: Type.STRING },
+        recommendations: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING },
+              description: { type: Type.STRING },
+            },
+            required: ['title', 'description']
+          }
+        },
+        roadmap: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              phase: { type: Type.STRING },
+              activities: { type: Type.ARRAY, items: { type: Type.STRING } },
+            },
+            required: ['phase', 'activities']
+          }
+        },
+      },
+      required: ['executiveSummary', 'recommendations', 'roadmap']
+    },
+    riskAssessment: {
+      type: Type.OBJECT,
+      properties: {
+        level: { type: Type.STRING, enum: ['Low', 'Medium', 'High'] },
+        factors: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              factor: { type: Type.STRING },
+              mitigation: { type: Type.STRING },
+            },
+            required: ['factor', 'mitigation']
+          }
+        },
+      },
+      required: ['level', 'factors']
+    },
   },
-  culturalInsights: {
-    alignmentScore: 78,
-    opportunities: [
-      'High appreciation for minimalist design and quality craftsmanship in Japan aligns with InnovateX\'s brand aesthetic.',
-      'The "Creator" archetype resonates with a growing subculture of digital artists and entrepreneurs.',
-      'Emphasis on long-term value and reliability is a key purchasing driver.',
-    ],
-    risks: [
-      'Bold, disruptive messaging may be perceived as arrogant if not balanced with respect for tradition and harmony ("Wa").',
-      'Competition from established domestic tech giants is fierce.',
-      'Subtle nuances in color symbolism and communication style must be carefully managed.',
-    ],
-    localizationAdvice: 'Adapt marketing materials to feature local creators and use a more indirect, relationship-focused communication style. Emphasize product quality and long-term support over aggressive claims.',
-    chartData: [
-      { name: 'Aesthetic', value: 90 },
-      { name: 'Values', value: 75 },
-      { name: 'Messaging', value: 60 },
-      { name: 'Archetype', value: 85 },
-    ],
-  },
-  strategy: {
-    executiveSummary: 'Entering the Japanese market requires a nuanced approach that leverages InnovateX\'s design strengths while adapting its communication to local cultural norms. The strategy focuses on building trust and demonstrating long-term commitment through partnerships and community engagement.',
-    recommendations: [
-      { title: 'Partnership with Local Design Influencers', description: 'Collaborate with respected Japanese designers and tech reviewers to build credibility.' },
-      { title: 'Community-Focused Launch Event', description: 'Host an exclusive event in Tokyo for creators and early adopters, focusing on experience over sales.' },
-      { title: 'Refined Messaging Campaign', description: 'Develop a campaign with the theme of "Harmony in Innovation," blending modern tech with traditional values.' },
-    ],
-    roadmap: [
-        { phase: 'Phase 1 (0-3 Months)', activities: ['Market research validation', 'Influencer identification', 'Initial messaging localization'] },
-        { phase: 'Phase 2 (3-6 Months)', activities: ['Launch partner program', 'Execute launch event', 'Deploy targeted digital ad campaign'] },
-        { phase: 'Phase 3 (6-12 Months)', activities: ['Establish local customer support', 'Expand retail presence', 'Measure brand sentiment and adjust strategy'] },
-    ],
-  },
-  riskAssessment: {
-    level: 'Medium',
-    factors: [
-        { factor: 'Cultural Misinterpretation', mitigation: 'Engage local cultural consultants and conduct extensive user testing of all marketing assets.' },
-        { factor: 'Intense Competition', mitigation: 'Differentiate on user experience and design, rather than competing solely on features or price.' },
-        { factor: 'Supply Chain Logistics', mitigation: 'Establish partnerships with reliable local distributors early in the process.' },
-    ],
-  },
+   required: ['brandDNA', 'culturalInsights', 'strategy', 'riskAssessment']
 };
 
-// This function simulates the entire analysis pipeline.
-export const generateFullAnalysis = async (
-  brandName: string,
-  targetMarket: string
-): Promise<AnalysisResult> => {
-  console.log(`Starting analysis for ${brandName} in ${targetMarket}...`);
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // Simulate network delay and processing time
-  await new Promise(resolve => setTimeout(resolve, 4000));
+const generateWithRetry = async (
+  payload: any,
+  maxRetries = 3,
+  initialDelay = 2000
+): Promise<GenerateContentResponse> => {
+  let attempt = 0;
+  while (attempt < maxRetries) {
+    try {
+      const result = await ai.models.generateContent(payload);
+      return result;
+    } catch (error) {
+      attempt++;
+      if (attempt >= maxRetries) {
+        console.error("API call failed after multiple retries.", error);
+        throw error;
+      }
 
-  console.log('Analysis complete.');
+      const isOverloaded = error instanceof Error &&
+        (error.message.includes('overloaded') || error.message.includes('503'));
+
+      if (isOverloaded) {
+        const delay = initialDelay * (2 ** (attempt - 1));
+        console.log(`Model overloaded. Retrying in ${delay / 1000}s... (Attempt ${attempt}/${maxRetries})`);
+        await sleep(delay);
+      } else {
+        throw error;
+      }
+    }
+  }
+  throw new Error("Exhausted all retries.");
+};
+
+
+export const generateFullAnalysis = async (brandData: BrandData): Promise<AnalysisResult> => {
+  console.log(`Starting real analysis for ${brandData.brandName} in ${brandData.targetMarket}...`);
+
+  const { brandName, description, marketGoals, targetMarket, assets } = brandData;
+
+  const prompt = `
+    You are CulturalGPT, an expert AI in global marketing, branding, and cultural analysis. Your task is to provide a comprehensive cultural market intelligence report.
+
+    **Brand Information:**
+    - Name: ${brandName}
+    - Description: ${description}
+    - Market Goals: ${marketGoals}
+
+    **Target Market:**
+    - ${targetMarket}
+
+    **Brand Assets:**
+    - Visual assets (logos, product shots, etc.) are provided as images.
+
+    **Your Task:**
+    Based on all the provided information, generate a detailed analysis structured as a JSON object. The analysis should cover:
+    1.  **Brand DNA:** Define the brand's core identity, including a fitting archetype (e.g., The Creator, The Hero), its tone of voice, and key audience traits.
+    2.  **Cultural Insights:** Analyze the brand's cultural alignment with the target market. Provide an overall alignment score from 0-100. Identify specific opportunities and risks. Give actionable localization advice. The chartData should represent alignment scores (0-100) for four key areas: 'Aesthetic', 'Values', 'Messaging', and 'Archetype'.
+    3.  **Market-Entry Strategy:** Propose a high-level strategy with an executive summary, actionable recommendations, and a 3-phase roadmap (e.g., 0-3 months, 3-6 months, 6-12 months).
+    4.  **Risk Assessment:** Identify potential risks and suggest clear mitigation strategies.
+
+    Please adhere strictly to the provided JSON schema for your response. Ensure the entire output is a single, valid JSON object.
+  `;
+
+  const contents = [
+    ...assets,
+    { text: prompt },
+  ];
+
+  const response = await generateWithRetry({
+    model: 'gemini-2.5-flash',
+    contents: { parts: contents },
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: analysisResultSchema,
+    },
+  });
+
+  const analysisData = JSON.parse(response.text);
+
   return {
-    ...mockAnalysisResult,
+    id: `analysis-${Date.now()}`,
     brandName,
     targetMarket,
+    ...analysisData,
   };
 };
