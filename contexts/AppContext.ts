@@ -1,7 +1,7 @@
 
 import React, { createContext } from 'react';
 
-export type Page = 'landing' | 'dashboard' | 'analyze' | 'results';
+export type Page = 'landing' | 'dashboard' | 'analyze' | 'results' | 'pricing';
 
 interface AppContextType {
   currentPage: Page;

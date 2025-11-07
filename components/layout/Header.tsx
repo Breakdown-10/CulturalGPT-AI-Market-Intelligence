@@ -3,18 +3,23 @@ import React, { useContext, useState } from 'react';
 import { Logo, SunIcon, MoonIcon, MenuIcon, XIcon } from '../../constants';
 import useDarkMode from '../../hooks/useDarkMode';
 import Button from '../ui/Button';
-import { AppContext } from '../../contexts/AppContext';
+import { AppContext, Page } from '../../contexts/AppContext';
 
 const Header: React.FC = () => {
   const [isDarkMode, toggleDarkMode] = useDarkMode();
   const { navigate } = useContext(AppContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const navLinks = [
-    { name: 'Features', action: () => {} },
-    { name: 'Pricing', action: () => {} },
-    { name: 'Contact', action: () => {} },
+  const navLinks: { name: string; page: Page }[] = [
+    { name: 'Features', page: 'landing' },
+    { name: 'Pricing', page: 'pricing' },
+    { name: 'Contact', page: 'landing' },
   ];
+
+  const handleNavClick = (page: Page) => {
+    navigate(page);
+    setIsMenuOpen(false);
+  }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -26,11 +31,11 @@ const Header: React.FC = () => {
           </button>
         </div>
 
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-2 text-sm font-medium">
           {navLinks.map((link) => (
-            <a key={link.name} href="#" className="text-muted-foreground transition-colors hover:text-foreground">
+             <Button key={link.name} variant="ghost" onClick={() => handleNavClick(link.page)}>
               {link.name}
-            </a>
+            </Button>
           ))}
         </nav>
 
@@ -51,13 +56,13 @@ const Header: React.FC = () => {
        {isMenuOpen && (
             <div className="md:hidden px-4 pt-2 pb-4 space-y-2 border-t">
                  {navLinks.map((link) => (
-                    <a key={link.name} href="#" className="block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
+                    <button key={link.name} onClick={() => handleNavClick(link.page)} className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-muted-foreground hover:text-foreground hover:bg-accent">
                         {link.name}
-                    </a>
+                    </button>
                 ))}
                  <div className="pt-4 border-t border-border/40 flex items-center space-x-2">
-                    <Button variant="outline" onClick={() => navigate('dashboard')} className="w-full">Log In</Button>
-                    <Button onClick={() => navigate('analyze')} className="w-full">Try Demo</Button>
+                    <Button variant="outline" onClick={() => handleNavClick('dashboard')} className="w-full">Log In</Button>
+                    <Button onClick={() => handleNavClick('analyze')} className="w-full">Try Demo</Button>
                 </div>
             </div>
         )}

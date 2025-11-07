@@ -4,6 +4,7 @@ import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import AnalyzePage from './pages/AnalyzePage';
 import ResultsPage from './pages/ResultsPage';
+import PricingPage from './pages/PricingPage';
 import useDarkMode from './hooks/useDarkMode';
 import { AppContext, Page } from './contexts/AppContext';
 
@@ -32,6 +33,8 @@ function App() {
         return <AnalyzePage />;
       case 'results':
         return <ResultsPage analysisId={currentAnalysisId || 'mock-id'} />;
+      case 'pricing':
+        return <PricingPage />;
       default:
         return <LandingPage />;
     }

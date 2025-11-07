@@ -1,8 +1,16 @@
 
-import React from 'react';
+import React, { useContext } from 'react';
 import { Logo } from '../../constants';
+import { AppContext, Page } from '../../contexts/AppContext';
 
 const Footer: React.FC = () => {
+  const { navigate } = useContext(AppContext);
+
+  const handleNav = (e: React.MouseEvent<HTMLAnchorElement>, page: Page) => {
+    e.preventDefault();
+    navigate(page);
+  };
+
   return (
     <footer className="border-t bg-card">
       <div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
@@ -17,9 +25,9 @@ const Footer: React.FC = () => {
           <div>
             <h3 className="font-semibold">Product</h3>
             <ul className="mt-4 space-y-2 text-sm">
-              <li><a href="#" className="text-muted-foreground hover:text-foreground">Features</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground">Pricing</a></li>
-              <li><a href="#" className="text-muted-foreground hover:text-foreground">Demo</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'landing')} className="text-muted-foreground hover:text-foreground">Features</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'pricing')} className="text-muted-foreground hover:text-foreground">Pricing</a></li>
+              <li><a href="#" onClick={(e) => handleNav(e, 'analyze')} className="text-muted-foreground hover:text-foreground">Demo</a></li>
             </ul>
           </div>
           <div>
