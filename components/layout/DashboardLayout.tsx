@@ -1,4 +1,3 @@
-
 import React, { useContext } from 'react';
 import useDarkMode from '../../hooks/useDarkMode';
 import { AppContext } from '../../contexts/AppContext';
@@ -13,7 +12,7 @@ const SidebarIcon: React.FC<{ icon: React.FC<React.SVGProps<SVGSVGElement>>; tex
 );
 
 const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { navigate } = useContext(AppContext);
+  const { navigate, currentPage } = useContext(AppContext);
   const [isDarkMode, toggleDarkMode] = useDarkMode();
 
   const ProjectsIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -36,9 +35,9 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
             <span className="font-bold text-lg">CulturalGPT</span>
         </div>
         <nav className="flex-1 space-y-2">
-            <SidebarIcon icon={ProjectsIcon} text="Projects" active onClick={() => navigate('dashboard')} />
+            <SidebarIcon icon={ProjectsIcon} text="Projects" active={currentPage === 'dashboard'} onClick={() => navigate('dashboard')} />
             <SidebarIcon icon={ReportsIcon} text="Reports" />
-            <SidebarIcon icon={AccountIcon} text="Account" />
+            <SidebarIcon icon={AccountIcon} text="Account" active={currentPage === 'account'} onClick={() => navigate('account')} />
         </nav>
         <div>
             <button onClick={() => toggleDarkMode()} className="flex items-center p-2 w-full text-sm font-medium rounded-lg text-muted-foreground hover:bg-accent hover:text-foreground">
@@ -60,4 +59,3 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({ children }) 
 };
 
 export default DashboardLayout;
-

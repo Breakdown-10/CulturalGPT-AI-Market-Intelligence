@@ -52,8 +52,8 @@ const LandingPage = () => {
                             Unlock new markets with AI-powered insights. Understand cultural fit, perfect your tone, and connect with consumers on a deeper level.
                         </p>
                         <div className="mt-8 flex justify-center gap-4">
-                            <Button size="lg" onClick={() => navigate('analyze')}>Analyze Brand</Button>
-                            <Button size="lg" variant="outline" onClick={() => navigate('analyze')}>Try Demo</Button>
+                            <Button size="lg" onClick={() => navigate('register')}>Analyze Brand</Button>
+                            <Button size="lg" variant="outline" onClick={() => navigate('register')}>Try Demo</Button>
                         </div>
                     </div>
                 </section>

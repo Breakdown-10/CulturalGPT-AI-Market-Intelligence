@@ -2,7 +2,8 @@
 import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
+  // FIX: Added 'destructive' to the list of button variants.
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive';
   size?: 'sm' | 'md' | 'lg';
 }
 
@@ -20,6 +21,8 @@ const Button: React.FC<ButtonProps> = ({
     secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/90',
     outline: 'border border-input hover:bg-accent hover:text-accent-foreground',
     ghost: 'hover:bg-accent hover:text-accent-foreground',
+    // FIX: Added styles for the new 'destructive' variant.
+    destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
   };
 
   const sizeStyles = {
