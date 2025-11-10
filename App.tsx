@@ -13,6 +13,7 @@ import useDarkMode from './hooks/useDarkMode';
 import { AppContext, Page, User } from './contexts/AppContext';
 
 function App() {
+  console.log('App component rendering...');
   useDarkMode();
   const [currentPage, setCurrentPage] = useState<Page>('landing');
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
@@ -21,10 +22,19 @@ function App() {
   const [isLoadingAuth, setIsLoadingAuth] = useState<boolean>(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
         setUser({ name: firebaseUser.displayName, email: firebaseUser.email });
         setIsAuthenticated(true);
+        
+        // Import dynamically to avoid circular dependencies
+        const { getUserProfile, createUserProfile } = await import('./services/firestoreService');
+        
+        // Check if user profile exists in Firestore, create if not
+        const profile = await getUserProfile(firebaseUser.uid);
+        if (!profile && firebaseUser.email && firebaseUser.displayName) {
+          await createUserProfile(firebaseUser.uid, firebaseUser.email, firebaseUser.displayName);
+        }
       } else {
         setUser(null);
         setIsAuthenticated(false);
