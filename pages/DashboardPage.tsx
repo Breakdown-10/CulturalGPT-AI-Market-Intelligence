@@ -1,13 +1,9 @@
-
 import React, { useContext, useState, useEffect } from 'react';
 import type { BrandAnalysis } from '../types';
 import { AppContext } from '../contexts/AppContext';
-import { db } from '../firebase/config';
-import { collection, query, orderBy, getDocs, Timestamp } from 'firebase/firestore';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import Button from '../components/ui/Button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/Card';
-import Loader from '../components/Loader';
 
 const StatusBadge: React.FC<{ status: BrandAnalysis['status'] }> = ({ status }) => {
     const statusClasses = {
@@ -23,54 +19,15 @@ const StatusBadge: React.FC<{ status: BrandAnalysis['status'] }> = ({ status }) 
 }
 
 const DashboardPage: React.FC = () => {
-    const { navigate, user } = useContext(AppContext);
+    const { navigate } = useContext(AppContext);
     const [analyses, setAnalyses] = useState<BrandAnalysis[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const fetchAnalyses = async () => {
-            if (!user) {
-                setIsLoading(false);
-                return;
-            };
-
-            setIsLoading(true);
-            try {
-                const analysesCollectionRef = collection(db, 'users', user.uid, 'analyses');
-                const q = query(analysesCollectionRef, orderBy('createdAt', 'desc'));
-                const querySnapshot = await getDocs(q);
-
-                const fetchedAnalyses = querySnapshot.docs.map(doc => {
-                    const data = doc.data();
-                    const createdAtTimestamp = data.createdAt as Timestamp;
-                    return {
-                        id: doc.id,
-                        brandName: data.brandName,
-                        targetMarket: data.targetMarket,
-                        status: data.status,
-                        createdAt: createdAtTimestamp ? createdAtTimestamp.toDate().toISOString() : new Date().toISOString(),
-                    } as BrandAnalysis;
-                });
-                setAnalyses(fetchedAnalyses);
-            } catch (error) {
-                console.error("Error fetching analyses:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchAnalyses();
-    }, [user]);
-
-    if (isLoading) {
-        return (
-            <DashboardLayout>
-                <div className="flex items-center justify-center h-full">
-                    <Loader message="Loading projects..." />
-                </div>
-            </DashboardLayout>
-        );
-    }
+        const storedAnalyses = localStorage.getItem('analyses');
+        if (storedAnalyses) {
+            setAnalyses(JSON.parse(storedAnalyses));
+        }
+    }, []);
 
     return (
         <DashboardLayout>

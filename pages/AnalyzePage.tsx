@@ -1,10 +1,7 @@
-
-import React, { useState, useContext, useRef } from 'react';
+import React, { useState, useContext, useEffect, useRef } from 'react';
 import { AppContext } from '../contexts/AppContext';
 import { generateFullAnalysis } from '../services/geminiService';
-import { db } from '../firebase/config';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import type { AnalysisResult } from '../types';
+import type { AnalysisResult, BrandAnalysis } from '../types';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
@@ -13,7 +10,7 @@ import Loader from '../components/Loader';
 import { TARGET_MARKETS, Logo } from '../constants';
 
 const AnalyzePage: React.FC = () => {
-  const { navigate, user } = useContext(AppContext);
+  const { navigate } = useContext(AppContext);
   const [step, setStep] = useState(1);
   const [companyName, setCompanyName] = useState('');
   const [description, setDescription] = useState('');
@@ -21,10 +18,17 @@ const AnalyzePage: React.FC = () => {
   const [assets, setAssets] = useState<File[]>([]);
   const [targetMarket, setTargetMarket] = useState(TARGET_MARKETS[0]);
   const [isLoading, setIsLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
+
+  useEffect(() => {
+    if (analysisResult) {
+      navigate('results', analysisResult.id);
+    }
+  }, [analysisResult, navigate]);
 
   const handleNext = () => {
     if (step < totalSteps) {
@@ -34,7 +38,7 @@ const AnalyzePage: React.FC = () => {
 
   const handleBack = () => {
     if (step > 1) {
-      setStep(step + 1);
+      setStep(step - 1);
     }
   };
   
@@ -54,12 +58,6 @@ const AnalyzePage: React.FC = () => {
   };
 
   const handleSubmit = async () => {
-    if (!user) {
-        alert("You must be logged in to save an analysis.");
-        navigate('login');
-        return;
-    }
-
     setIsLoading(true);
     try {
       const assetParts = await Promise.all(
@@ -68,7 +66,7 @@ const AnalyzePage: React.FC = () => {
               .map(fileToPart)
       );
 
-      const result: Omit<AnalysisResult, 'id'> = await generateFullAnalysis({
+      const result = await generateFullAnalysis({
         brandName: companyName,
         description,
         marketGoals,
@@ -76,22 +74,22 @@ const AnalyzePage: React.FC = () => {
         assets: assetParts,
       });
       
-      const analysesCollectionRef = collection(db, 'users', user.uid, 'analyses');
+      // Store full result for the results page
+      localStorage.setItem(result.id, JSON.stringify(result));
       
-      const newAnalysisDoc = await addDoc(analysesCollectionRef, {
+      // Store summary for the dashboard
+      const analyses: BrandAnalysis[] = JSON.parse(localStorage.getItem('analyses') || '[]');
+      const newAnalysis: BrandAnalysis = {
+          id: result.id,
           brandName: result.brandName,
           targetMarket: result.targetMarket,
           status: 'Completed',
-          createdAt: serverTimestamp(),
-          userId: user.uid,
-          brandDNA: result.brandDNA,
-          culturalInsights: result.culturalInsights,
-          strategy: result.strategy,
-          riskAssessment: result.riskAssessment,
-      });
+          createdAt: new Date().toISOString().split('T')[0],
+      };
+      analyses.unshift(newAnalysis); // Add to the top of the list
+      localStorage.setItem('analyses', JSON.stringify(analyses));
 
-      navigate('results', newAnalysisDoc.id);
-
+      setAnalysisResult(result);
     } catch (error) {
         console.error("Analysis failed:", error);
         const errorMessage = error instanceof Error && (error.message.includes('overloaded') || error.message.includes('503'))

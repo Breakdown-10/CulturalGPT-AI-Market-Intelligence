@@ -1,10 +1,6 @@
-
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import type { AnalysisResult } from '../types';
-import { AppContext } from '../contexts/AppContext';
-import { db } from '../firebase/config';
-import { doc, getDoc } from 'firebase/firestore';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -13,35 +9,21 @@ import Loader from '../components/Loader';
 type Tab = 'Brand DNA' | 'Cultural Insights' | 'Strategy' | 'Risk Assessment';
 
 const ResultsPage: React.FC<{ analysisId: string }> = ({ analysisId }) => {
-  const { user } = useContext(AppContext);
   const [activeTab, setActiveTab] = useState<Tab>('Brand DNA');
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return; // Wait for user context to be available
-
+    const fetchData = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const docRef = doc(db, 'users', user.uid, 'analyses', analysisId);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-           const data = docSnap.data();
-           setResult({
-                id: docSnap.id,
-                brandName: data.brandName,
-                targetMarket: data.targetMarket,
-                brandDNA: data.brandDNA,
-                culturalInsights: data.culturalInsights,
-                strategy: data.strategy,
-                riskAssessment: data.riskAssessment,
-            });
+        const storedData = localStorage.getItem(analysisId);
+        if (storedData) {
+          setResult(JSON.parse(storedData));
         } else {
-          setError(`Analysis report with ID "${analysisId}" not found. It may have been deleted or you may not have permission to view it.`);
+          setError(`Analysis report with ID "${analysisId}" not found. It might have been cleared from your browser's storage. Please start a new analysis.`);
         }
       } catch (e) {
         console.error("Failed to load analysis report:", e);
@@ -51,7 +33,7 @@ const ResultsPage: React.FC<{ analysisId: string }> = ({ analysisId }) => {
       }
     };
     fetchData();
-  }, [analysisId, user]);
+  }, [analysisId]);
 
   if (isLoading) {
     return (
@@ -69,7 +51,7 @@ const ResultsPage: React.FC<{ analysisId: string }> = ({ analysisId }) => {
             <div className="flex flex-col items-center justify-center h-full text-center p-4">
                 <Card className="max-w-md w-full">
                     <CardHeader>
-                        <CardTitle className="text-destructive">Error Loading Report</CardTitle>
+                        <CardTitle className="text-destructive">Analysis Failed</CardTitle>
                         <CardDescription>An error occurred while fetching your report.</CardDescription>
                     </CardHeader>
                     <CardContent>

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, updateProfile, User as FirebaseUser } from 'firebase/auth';
 import { auth } from './firebase/config';
@@ -24,7 +23,7 @@ function App() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        setUser({ uid: firebaseUser.uid, name: firebaseUser.displayName, email: firebaseUser.email });
+        setUser({ name: firebaseUser.displayName, email: firebaseUser.email });
         setIsAuthenticated(true);
       } else {
         setUser(null);
@@ -67,8 +66,7 @@ function App() {
   const register = async (name: string, email: string, password: string) => {
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
     await updateProfile(userCredential.user, { displayName: name });
-    const firebaseUser = userCredential.user;
-    setUser({ uid: firebaseUser.uid, name, email });
+    setUser({ name, email });
     setIsAuthenticated(true);
     navigate('dashboard');
   };
