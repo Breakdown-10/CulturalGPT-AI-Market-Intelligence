@@ -1,8 +1,10 @@
+
 import React, { createContext } from 'react';
 
 export type Page = 'landing' | 'dashboard' | 'analyze' | 'results' | 'pricing' | 'login' | 'register' | 'account';
 
 export interface User {
+  uid: string;
   name: string | null;
   email: string | null;
 }
