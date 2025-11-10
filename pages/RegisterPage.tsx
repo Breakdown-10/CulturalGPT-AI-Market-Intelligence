@@ -6,20 +6,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../co
 import { Logo } from '../constants';
 
 const RegisterPage: React.FC = () => {
-    const { navigate, login } = useContext(AppContext);
+    const { navigate, register } = useContext(AppContext);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleRegister = (e: React.FormEvent) => {
+    const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (name && email && password) {
-            // In a real app, you would register the user in your database.
-            // Here, we'll just log them in directly.
-            login({ name, email });
-        } else {
+        if (!name || !email || !password) {
             setError('Please fill out all fields.');
+            return;
+        }
+        setError('');
+        setIsLoading(true);
+        try {
+            await register(name, email, password);
+             // Navigation is handled automatically by the App's auth listener
+        } catch (err: any) {
+            switch (err.code) {
+                case 'auth/email-already-in-use':
+                    setError('This email address is already registered.');
+                    break;
+                case 'auth/weak-password':
+                    setError('Password should be at least 6 characters long.');
+                    break;
+                case 'auth/invalid-email':
+                    setError('Please enter a valid email address.');
+                    break;
+                default:
+                    setError('An unexpected error occurred. Please try again.');
+                    console.error(err);
+                    break;
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -45,6 +67,7 @@ const RegisterPage: React.FC = () => {
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                         <div className="space-y-2">
@@ -56,6 +79,7 @@ const RegisterPage: React.FC = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                         <div className="space-y-2">
@@ -66,11 +90,12 @@ const RegisterPage: React.FC = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
-                        <Button type="submit" className="w-full">
-                            Create Account
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                             {isLoading ? 'Creating Account...' : 'Create Account'}
                         </Button>
                     </form>
                     <div className="mt-4 text-center text-sm">

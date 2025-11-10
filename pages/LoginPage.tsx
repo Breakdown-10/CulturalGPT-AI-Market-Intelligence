@@ -10,17 +10,33 @@ const LoginPage: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleLogin = (e: React.FormEvent) => {
+    const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        // This is a mock login. In a real app, you'd validate against a backend.
-        if (email && password) {
-            // For demonstration, we'll log in any user with a non-empty email/password
-            // and derive a name from the email.
-            const name = email.split('@')[0].replace(/[^a-zA-Z]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-            login({ name, email });
-        } else {
+        if (!email || !password) {
             setError('Please enter both email and password.');
+            return;
+        }
+        setError('');
+        setIsLoading(true);
+        try {
+            await login(email, password);
+            // Navigation is handled automatically by the App's auth listener
+        } catch (err: any) {
+            switch (err.code) {
+                case 'auth/user-not-found':
+                case 'auth/wrong-password':
+                case 'auth/invalid-credential':
+                    setError('Invalid email or password.');
+                    break;
+                default:
+                    setError('An unexpected error occurred. Please try again.');
+                    console.error(err);
+                    break;
+            }
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -46,6 +62,7 @@ const LoginPage: React.FC = () => {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                         <div className="space-y-2">
@@ -56,11 +73,12 @@ const LoginPage: React.FC = () => {
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                                 required
+                                disabled={isLoading}
                             />
                         </div>
                         {error && <p className="text-sm text-destructive">{error}</p>}
-                        <Button type="submit" className="w-full">
-                            Log In
+                        <Button type="submit" className="w-full" disabled={isLoading}>
+                            {isLoading ? 'Logging In...' : 'Log In'}
                         </Button>
                     </form>
                     <div className="mt-4 text-center text-sm">

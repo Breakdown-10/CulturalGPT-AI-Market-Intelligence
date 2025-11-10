@@ -6,7 +6,7 @@ import { AppContext, Page } from '../../contexts/AppContext';
 
 const Header: React.FC = () => {
   const [isDarkMode, toggleDarkMode] = useDarkMode();
-  const { navigate } = useContext(AppContext);
+  const { navigate, isAuthenticated, logout } = useContext(AppContext);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navLinks: { name: string; page: Page }[] = [
@@ -42,8 +42,17 @@ const Header: React.FC = () => {
           <Button variant="ghost" onClick={() => toggleDarkMode()} size="sm" className="w-9 h-9 p-0">
             {isDarkMode ? <SunIcon className="h-5 w-5" /> : <MoonIcon className="h-5 w-5" />}
           </Button>
-          <Button variant="ghost" onClick={() => navigate('login')}>Log In</Button>
-          <Button onClick={() => navigate('register')}>Try Demo</Button>
+           {isAuthenticated ? (
+            <>
+              <Button variant="ghost" onClick={() => navigate('dashboard')}>Dashboard</Button>
+              <Button onClick={() => logout()}>Log Out</Button>
+            </>
+          ) : (
+            <>
+              <Button variant="ghost" onClick={() => navigate('login')}>Log In</Button>
+              <Button onClick={() => navigate('register')}>Try Demo</Button>
+            </>
+          )}
         </div>
 
         <div className="md:hidden flex items-center">
@@ -60,8 +69,17 @@ const Header: React.FC = () => {
                     </button>
                 ))}
                  <div className="pt-4 border-t border-border/40 flex items-center space-x-2">
-                    <Button variant="outline" onClick={() => handleNavClick('login')} className="w-full">Log In</Button>
-                    <Button onClick={() => handleNavClick('register')} className="w-full">Try Demo</Button>
+                     {isAuthenticated ? (
+                        <>
+                            <Button variant="outline" onClick={() => handleNavClick('dashboard')} className="w-full">Dashboard</Button>
+                            <Button onClick={() => logout()} className="w-full">Log Out</Button>
+                        </>
+                    ) : (
+                        <>
+                            <Button variant="outline" onClick={() => handleNavClick('login')} className="w-full">Log In</Button>
+                            <Button onClick={() => handleNavClick('register')} className="w-full">Try Demo</Button>
+                        </>
+                    )}
                 </div>
             </div>
         )}
