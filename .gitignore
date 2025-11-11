@@ -20,7 +20,7 @@ dist-ssr
 .env.production.local
 
 # Firebase
-firebase/config.ts
+firebase/config.local.ts
 .firebaserc
 firebase-debug.log
 firestore-debug.log
@@ -36,3 +36,4 @@ ui-debug.log
 *.njsproj
 *.sln
 *.sw?
+.vercel
